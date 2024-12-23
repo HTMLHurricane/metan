@@ -24,7 +24,7 @@ const LoginPage = () => {
   return (
     <Form
       form={form}
-      className="min-h-screen flex flex-col justify-center items-center pl-20"
+      className="min-h-screen flex flex-col justify-center items-center pl-20 bg-[#181818]"
       initialValues={{
         remember: true,
       }}
@@ -32,7 +32,7 @@ const LoginPage = () => {
     >
       <Form.Item
         name="phone_number"
-        label="Номер телефона"
+        label={<span className="text-slate-100 text-xl">номер телефона</span>}
         rules={[
           {
             required: true,
@@ -43,7 +43,7 @@ const LoginPage = () => {
         <MaskedInput
           prefix={<PhoneOutlined />}
           mask={"(00)000 00 00"}
-          className="text-2xl w-[250px]"
+          className="text-slate-200 text-3xl w-[250px] bg-[#333333] border-[#333333] hover:border-[#333333] hover:!bg-[#333333] active:!bg-[#333333]"
           onChange={handlePhoneChange}
         />
       </Form.Item>

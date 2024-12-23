@@ -7,7 +7,7 @@ import { useEffect } from "react";
 export const Verify = () => {
   const [form] = Form.useForm();
   const { mutate: verify, isError, error } = useVerifyMutation();
-  
+
   useEffect(() => {
     const phoneNumber = localStorage.getItem("phone_number");
     if (phoneNumber) {
@@ -27,7 +27,7 @@ export const Verify = () => {
   return (
     <Form
       form={form}
-      className="min-h-screen flex flex-col justify-center items-center pl-28"
+      className="min-h-screen flex flex-col justify-center items-center pl-28 bg-[#181818]"
       initialValues={{
         remember: true,
       }}
@@ -36,7 +36,7 @@ export const Verify = () => {
       <Form.Item name="phone_number" className="hidden" />
       <Form.Item
         name="code"
-        label="Код из смс"
+        label={<span className="text-slate-100 text-xl">Код из смс</span>}
         rules={[
           {
             required: true,
@@ -46,7 +46,7 @@ export const Verify = () => {
       >
         <MaskedInput
           mask={"0 0 0 0"}
-          className="text-3xl w-[120px] border-none"
+          className="text-slate-200 text-3xl w-[120px] bg-[#333333] border-[#333333] hover:border-[#333333] hover:!bg-[#333333] active:!bg-[#333333]"
           onChange={handleCodeChange}
         />
       </Form.Item>
