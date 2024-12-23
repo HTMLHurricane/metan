@@ -10,6 +10,30 @@ const Home = () => {
   const [gasStations, setGasStations] = useState<GasStation[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const navigate = useNavigate();
+  const [userLocation, setUserLocation] = useState<{
+    lat: number;
+    lon: number;
+  } | null>(null);
+
+  // Функция для вычисления расстояния между двумя точками (в метрах)
+  const getDistance = (
+    lat1: number,
+    lon1: number,
+    lat2: number,
+    lon2: number
+  ) => {
+    const R = 6371; // Радиус Земли в километрах
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLon = ((lon2 - lon1) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos((lat1 * Math.PI) / 180) *
+        Math.cos((lat2 * Math.PI) / 180) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c * 1000; // Возвращаем расстояние в метрах
+  };
 
   useEffect(() => {
     const token = TOKEN.getAccessToken() ?? "";
@@ -22,16 +46,50 @@ const Home = () => {
         action: "list",
       };
       socket.send(JSON.stringify(message));
+
+      // Получаем текущую геолокацию пользователя
+      if (navigator.geolocation) {
+        navigator.geolocation.watchPosition(
+          (position) => {
+            const newLocation = {
+              lat: position.coords.latitude,
+              lon: position.coords.longitude,
+            };
+
+            console.log("Получена геолокация пользователя:", newLocation);
+
+            // Если местоположение отличается от предыдущего на значительное расстояние (например, 10 метров)
+            if (
+              !userLocation ||
+              getDistance(
+                userLocation.lat,
+                userLocation.lon,
+                newLocation.lat,
+                newLocation.lon
+              ) > 10
+            ) {
+              setUserLocation(newLocation);
+
+              // Отправляем обновленную геолокацию на сервер
+              sendLocation(newLocation);
+            }
+          },
+          (error) => {
+            console.error("Ошибка получения геолокации:", error);
+          }
+        );
+      } else {
+        console.error("Геолокация не поддерживается этим браузером.");
+      }
     };
 
     socket.onmessage = (event) => {
       const response: GasStationsResponse = JSON.parse(event.data);
       console.log("Полученные данные от сервера:", response);
 
-      // Если данные пустые или undefined, используем старые данные
       if (response?.data?.gas_stations) {
         setGasStations(response.data.gas_stations);
-        setLoading(false); // Убираем лоадер после получения данных
+        setLoading(false);
       } else {
         console.log("Данные не получены или пустые, сохраняем старые данные");
         setLoading(false);
@@ -40,7 +98,6 @@ const Home = () => {
 
     socket.onerror = (error) => {
       console.error("Ошибка WebSocket:", error);
-      // Можно добавить логику для повторного подключения
     };
 
     socket.onclose = (event) => {
@@ -50,9 +107,27 @@ const Home = () => {
     return () => {
       socket.close();
     };
-  }, []);
+  }, [userLocation]); // Добавляем зависимость от userLocation для повторных вызовов
 
-  // Логирование состояния для проверки обновлений
+  // Функция для отправки геолокации на сервер
+  const sendLocation = (location: { lat: number; lon: number }) => {
+    const token = TOKEN.getAccessToken() ?? "";
+    const socketUrl = `wss://gas-station.aralhub.uz/ws/user/gas-stations/?token=${token}`;
+    const socket = new WebSocket(socketUrl);
+
+    const locationMessage = {
+      action: "create",
+      data: {
+        point: [location.lat, location.lon],
+      },
+    };
+
+    socket.onopen = () => {
+      socket.send(JSON.stringify(locationMessage));
+      console.log("Отправлено сообщение с геолокацией:", locationMessage);
+    };
+  };
+
   useEffect(() => {
     console.log("Список заправок обновлен:", gasStations);
   }, [gasStations]);
