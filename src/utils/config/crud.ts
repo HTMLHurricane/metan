@@ -12,6 +12,15 @@ export async function CreateFunction(path: string, body: any) {
     throw new Error("Произошла ошибка при создании. Попробуйте еще раз");
   }
 }
+export async function CreateFunctionPostman(path: string, body: any) {
+  try {
+    const res = await axiosInstancePostman.post(path, body);
+    return res.data;
+  } catch (error) {
+    console.error(error);
+    throw new Error("Произошла ошибка при создании. Попробуйте еще раз");
+  }
+}
 
 export async function ReadFunction<T>(path: string) {
   try {
