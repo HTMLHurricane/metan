@@ -8,6 +8,7 @@ export const useGetGasStations = () => {
     getGasStations,
     {
       select: (response) => response.data,
+      refetchInterval: 5000,
     }
   );
 };

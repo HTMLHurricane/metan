@@ -1,13 +1,61 @@
-import { useGetGasStations } from "@/utils/api/gasStations/api";
-import { Typography, Badge } from "antd";
+import { TOKEN } from "@/utils/config/token";
+import { Typography, Badge, Skeleton } from "antd";
+import { useState, useEffect, memo } from "react";
 import { FaLocationDot } from "react-icons/fa6";
 import { useNavigate } from "react-router-dom";
 
 const { Text } = Typography;
 
 const Home = () => {
-  const { data } = useGetGasStations();
+  const [gasStations, setGasStations] = useState<GasStation[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const token = TOKEN.getAccessToken() ?? "";
+
+    const socketUrl = `wss://gas-station.aralhub.uz/ws/user/gas-stations/?token=${token}`;
+    const socket = new WebSocket(socketUrl);
+
+    socket.onopen = () => {
+      const message = {
+        action: "list",
+      };
+      socket.send(JSON.stringify(message));
+    };
+
+    socket.onmessage = (event) => {
+      const response: GasStationsResponse = JSON.parse(event.data);
+      console.log("Полученные данные от сервера:", response);
+
+      // Если данные пустые или undefined, используем старые данные
+      if (response?.data?.gas_stations) {
+        setGasStations(response.data.gas_stations);
+        setLoading(false); // Убираем лоадер после получения данных
+      } else {
+        console.log("Данные не получены или пустые, сохраняем старые данные");
+        setLoading(false);
+      }
+    };
+
+    socket.onerror = (error) => {
+      console.error("Ошибка WebSocket:", error);
+      // Можно добавить логику для повторного подключения
+    };
+
+    socket.onclose = (event) => {
+      console.log("WebSocket соединение закрыто", event.reason);
+    };
+
+    return () => {
+      socket.close();
+    };
+  }, []);
+
+  // Логирование состояния для проверки обновлений
+  useEffect(() => {
+    console.log("Список заправок обновлен:", gasStations);
+  }, [gasStations]);
 
   return (
     <div className="p-2 bg-[#181818] min-h-screen">
@@ -15,41 +63,92 @@ const Home = () => {
         Metan Nukus
       </div>
       <div className="pt-20 pb-5 grid gap-5">
-        {data?.map((item) => (
-          <div
-            onClick={() => navigate(`/${item.id}`)}
-            key={item.id}
-            className={`${
-              item.is_open ? "border-[#28a745]" : "border-[#dc3545]"
-            } shadow-lg rounded-lg p-3 grid gap-4 border-solid border-[1px] cursor-pointer hover:bg-[#333333] transition duration-200`}
-          >
-            <div className="flex items-center gap-4">
-              <FaLocationDot
-                style={{
-                  fontSize: "28px",
-                  color: item.is_open ? "#28a745" : "#dc3545",
-                }}
+        {loading ? (
+          <div>
+            {Array.from({ length: 5 }).map((_, index) => (
+              <Skeleton
+                key={index}
+                active
+                paragraph={{ rows: 2 }}
+                className="mb-5"
               />
-              <Text className="text-2xl font-semibold text-slate-100">
-                {item.name}
-              </Text>
-            </div>
-            <div className="flex text-lg justify-between">
-              <Badge
-                status={item.is_open ? "success" : "error"}
-                text={
-                  <span className="text-lg text-slate-300 px-1">
-                    {item.is_open ? "Открыто" : "Закрыто"}
-                  </span>
-                }
-                className="pl-3"
-              />
-            </div>
+            ))}
           </div>
-        ))}
+        ) : (
+          gasStations?.map((item) => (
+            <div
+              onClick={() => navigate(`/${item.id}`)}
+              key={item.id}
+              className={`${
+                item.is_open ? "border-[#28a745]" : "border-[#dc3545]"
+              } shadow-lg rounded-lg p-3 grid gap-4 border-solid border-[1px] cursor-pointer hover:bg-[#333333] transition duration-200`}
+            >
+              <div className="flex items-center gap-4">
+                <FaLocationDot
+                  style={{
+                    fontSize: "28px",
+                    color: item.is_open ? "#28a745" : "#dc3545",
+                  }}
+                />
+                <Text className="text-2xl font-semibold text-slate-100">
+                  {item.name}
+                </Text>
+              </div>
+              <div className="flex items-center justify-between text-lg space-x-4">
+                <Badge
+                  status={item.is_open ? "success" : "error"}
+                  text={
+                    <span className="text-lg text-slate-300 px-1">
+                      {item.is_open ? "Открыто" : "Закрыто"}
+                    </span>
+                  }
+                  className="pl-3"
+                />
+                <div className="flex items-center text-slate-300 px-3 py-1 bg-slate-700 rounded-lg shadow-md text-[16px] space-x-1">
+                  <span className="text-slate-100 font-medium">Очередь:</span>
+                  <span className="font-semibold">
+                    {item.gas_station_users?.length || 0}
+                  </span>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
       </div>
     </div>
   );
 };
 
-export default Home;
+export default memo(Home);
+
+interface Point {
+  type: "Point";
+  coordinates: [number, number];
+}
+
+interface GasStationUser {
+  user: {
+    id: string;
+    point: Point;
+  };
+}
+
+interface GasStation {
+  id: string;
+  name: string;
+  point: Point;
+  total: number;
+  is_open: boolean;
+  is_open_by_admin: boolean;
+  comment: string;
+  comment_updated_at: string;
+  gas_station_users: GasStationUser[];
+}
+
+interface GasStationsResponse {
+  message: string;
+  data: {
+    action: string;
+    gas_stations: GasStation[];
+  };
+}
