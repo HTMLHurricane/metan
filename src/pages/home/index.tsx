@@ -14,6 +14,7 @@ const Home = () => {
     lat: number;
     lon: number;
   } | null>(null);
+  const [socket, setSocket] = useState<WebSocket | null>(null); // Одно соединение для всего
 
   // Функция для вычисления расстояния между двумя точками (в метрах)
   const getDistance = (
@@ -37,11 +38,14 @@ const Home = () => {
 
   useEffect(() => {
     const token = TOKEN.getAccessToken() ?? "";
-
     const socketUrl = `wss://gas-station.aralhub.uz/ws/user/gas-stations/?token=${token}`;
     const socket = new WebSocket(socketUrl);
 
+    // Сохранить socket один раз
+    setSocket(socket);
+
     socket.onopen = () => {
+      // Получение списка заправок
       const message = {
         action: "list",
       };
@@ -55,8 +59,6 @@ const Home = () => {
               lat: position.coords.latitude,
               lon: position.coords.longitude,
             };
-
-            console.log("Получена геолокация пользователя:", newLocation);
 
             // Если местоположение отличается от предыдущего на значительное расстояние (например, 10 метров)
             if (
@@ -85,13 +87,11 @@ const Home = () => {
 
     socket.onmessage = (event) => {
       const response: GasStationsResponse = JSON.parse(event.data);
-      console.log("Полученные данные от сервера:", response);
 
       if (response?.data?.gas_stations) {
         setGasStations(response.data.gas_stations);
         setLoading(false);
       } else {
-        console.log("Данные не получены или пустые, сохраняем старые данные");
         setLoading(false);
       }
     };
@@ -107,29 +107,23 @@ const Home = () => {
     return () => {
       socket.close();
     };
-  }, [userLocation]); // Добавляем зависимость от userLocation для повторных вызовов
+  }, []); // Теперь useEffect запускается только один раз при монтировании компонента
 
-  // Функция для отправки геолокации на сервер
+  // Функция для отправки геолокации на сервер через уже открытое соединение
   const sendLocation = (location: { lat: number; lon: number }) => {
-    const token = TOKEN.getAccessToken() ?? "";
-    const socketUrl = `wss://gas-station.aralhub.uz/ws/user/gas-stations/?token=${token}`;
-    const socket = new WebSocket(socketUrl);
-
-    const locationMessage = {
-      action: "create",
-      data: {
-        point: [location.lat, location.lon],
-      },
-    };
-
-    socket.onopen = () => {
+    if (socket?.readyState === WebSocket.OPEN) {
+      const locationMessage = {
+        action: "create",
+        data: {
+          point: [location.lat, location.lon],
+        },
+      };
       socket.send(JSON.stringify(locationMessage));
-      console.log("Отправлено сообщение с геолокацией:", locationMessage);
-    };
+    }
   };
 
   useEffect(() => {
-    console.log("Список заправок обновлен:", gasStations);
+    // Список заправок обновлен, но логирование удалено
   }, [gasStations]);
 
   return (
