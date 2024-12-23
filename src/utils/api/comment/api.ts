@@ -1,11 +1,10 @@
-import { useMutation, useQuery } from "react-query";
+import { useMutation, useQuery, useQueryClient } from "react-query";
 import {
   ICommentPost,
   IGasStationCommentsResponse,
   IRepliesPost,
 } from "./types";
 import { createComment, createReplies, getGasStationsComments } from ".";
-import { message } from "antd";
 
 export const useGetGasStationsComment = (id?: string) => {
   return useQuery<
@@ -19,23 +18,14 @@ export const useGetGasStationsComment = (id?: string) => {
 };
 
 export const useCreateReplies = () => {
-  return useMutation<unknown, any, IRepliesPost>(createReplies, {
-    onSuccess: () => {
-      message.success("Ваш голос успешно отправлен");
-    },
-    onError: (error) => {
-      console.log(error);
-    },
-  });
+  return useMutation<unknown, any, IRepliesPost>(createReplies);
 };
 
 export const useCreateComment = () => {
+  const queryClient = useQueryClient();
   return useMutation<unknown, any, ICommentPost>(createComment, {
     onSuccess: () => {
-      message.success("Ваше сообщение успешно отправлен");
-    },
-    onError: (error) => {
-      console.log(error);
+      queryClient.invalidateQueries("comment");
     },
   });
 };

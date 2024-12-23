@@ -5,7 +5,7 @@ import { Form, Input, Button } from "antd";
 export const AuthDetails = () => {
   const [form] = Form.useForm();
   const isLoading = false;
-  const { mutate: authDetail, isError, error } = useAuthDetail();
+  const { mutate: authDetail } = useAuthDetail();
   const onFinish = (data: IAuthDetailPost) => {
     authDetail(data);
     localStorage.setItem("name", data.name);
@@ -63,7 +63,6 @@ export const AuthDetails = () => {
           отправить
         </Button>
       </Form.Item>
-      {isError && <span className="error">{error?.message}</span>}
     </Form>
   );
 };
