@@ -10,19 +10,8 @@ const App = () => {
   useEffect(() => {
     if (window.TelegramWebApp) {
       const tg = window.TelegramWebApp;
-
       tg.expand();
-
       tg.ready();
-
-      const user = tg.initDataUnsafe?.user;
-      if (user) {
-        console.log("User:", user);
-      }
-
-      // Пример изменения текста кнопки Telegram Web App
-      tg.MainButton.text = "Нажми меня";
-      tg.MainButton.show();
     }
   }, []);
 
