@@ -16,7 +16,7 @@ const Home = () => {
     lat: number;
     lon: number;
   } | null>(null);
-  const [socket, setSocket] = useState<WebSocket | null>(null); // Одно соединение для всего
+  const [socket, setSocket] = useState<WebSocket | null>(null);
 
   // Функция для вычисления расстояния между двумя точками (в метрах)
   const getDistance = (
@@ -38,50 +38,87 @@ const Home = () => {
     return R * c * 1000; // Возвращаем расстояние в метрах
   };
 
+  // Функция для отправки геолокации на сервер через открытое соединение
+  const sendLocation = (location: { lat: number; lon: number }) => {
+    if (socket?.readyState === WebSocket.OPEN) {
+      const locationMessage = {
+        action: "create",
+        data: {
+          point: [location.lat, location.lon],
+        },
+      };
+      socket.send(JSON.stringify(locationMessage));
+    }
+  };
+
+  // Оптимизированная функция для отправки с задержкой
+  const sendLocationThrottled = (() => {
+    let lastSentTime = 0;
+    return (location: { lat: number; lon: number }) => {
+      const now = Date.now();
+      if (now - lastSentTime > 5000) {
+        // Ограничение на отправку каждые 5 секунд
+        sendLocation(location);
+        lastSentTime = now;
+      }
+    };
+  })();
+
   useEffect(() => {
     const token = TOKEN.getAccessToken() ?? "";
     const socketUrl = `wss://gas-station.aralhub.uz/ws/user/gas-stations/?token=${token}`;
     const socket = new WebSocket(socketUrl);
 
-    // Сохранить socket один раз
     setSocket(socket);
 
     socket.onopen = () => {
-      // Получение списка заправок
       const message = {
         action: "list",
       };
       socket.send(JSON.stringify(message));
 
-      // Получаем текущую геолокацию пользователя
       if (navigator.geolocation) {
-        navigator.geolocation.watchPosition(
-          (position) => {
-            const newLocation = {
-              lat: position.coords.latitude,
-              lon: position.coords.longitude,
-            };
+        let watchId: number;
 
-            // Если местоположение отличается от предыдущего на значительное расстояние (например, 10 метров)
-            if (
-              !userLocation ||
-              getDistance(
-                userLocation.lat,
-                userLocation.lon,
-                newLocation.lat,
-                newLocation.lon
-              ) > 10
-            ) {
-              setUserLocation(newLocation);
+        const handlePositionUpdate = (position: GeolocationPosition) => {
+          const newLocation = {
+            lat: position.coords.latitude,
+            lon: position.coords.longitude,
+          };
 
-              // Отправляем обновленную геолокацию на сервер
-              sendLocation(newLocation);
-            }
-          },
-          (error) => {
-            console.error("Ошибка получения геолокации:", error);
+          if (
+            !userLocation ||
+            getDistance(
+              userLocation.lat,
+              userLocation.lon,
+              newLocation.lat,
+              newLocation.lon
+            ) > 10
+          ) {
+            setUserLocation(newLocation);
+            sendLocationThrottled(newLocation);
+          }
+        };
+
+        const handleError = (error: GeolocationPositionError) => {
+          console.error("Ошибка получения геолокации:", error);
+        };
+
+        watchId = navigator.geolocation.watchPosition(
+          handlePositionUpdate,
+          handleError,
+          {
+            enableHighAccuracy: true,
+            maximumAge: 60000, // Используем кэшированные данные, если они не старше 1 минуты
+            timeout: 10000,
           }
         );
+
+        return () => {
+          if (watchId) {
+            navigator.geolocation.clearWatch(watchId);
+          }
+        };
       } else {
         console.error("Геолокация не поддерживается этим браузером.");
       }
@@ -109,24 +146,7 @@ const Home = () => {
     return () => {
       socket.close();
     };
-  }, []); // Теперь useEffect запускается только один раз при монтировании компонента
-
-  // Функция для отправки геолокации на сервер через уже открытое соединение
-  const sendLocation = (location: { lat: number; lon: number }) => {
-    if (socket?.readyState === WebSocket.OPEN) {
-      const locationMessage = {
-        action: "create",
-        data: {
-          point: [location.lat, location.lon],
-        },
-      };
-      socket.send(JSON.stringify(locationMessage));
-    }
-  };
-
-  useEffect(() => {
-    // Список заправок обновлен, но логирование удалено
-  }, [gasStations]);
+  }, []);
 
   const data = postmanData?.map((item1) => {
     const match = gasStations?.find((item2) => item2.id === item1.id);
@@ -172,7 +192,7 @@ const Home = () => {
                     fontSize: "28px",
                     color:
                       item.is_active === false
-                        ? "#FFD700 "
+                        ? "#FFD700"
                         : item.is_active && item.is_open
                         ? "#28a745"
                         : "#dc3545",
@@ -184,10 +204,20 @@ const Home = () => {
               </div>
               <div className="flex items-center justify-between text-lg space-x-4">
                 <Badge
-                  status={item.is_open ? "success" : "error"}
+                  status={
+                    item.is_active === false
+                      ? "warning"
+                      : item.is_active && item.is_open
+                      ? "success"
+                      : "error"
+                  }
                   text={
                     <span className="text-lg text-slate-300 px-1">
-                      {item.is_open ? "Открыто" : "Закрыто"}
+                      {item.is_active === false
+                        ? "неизвестно"
+                        : item.is_active && item.is_open
+                        ? "открыто"
+                        : "закрыто"}
                     </span>
                   }
                   className="pl-3"
