@@ -8,6 +8,17 @@ const App = () => {
   const { isOnline: isNetwork } = useNetwork();
 
   useEffect(() => {
+    const checkLocalStorage = () => {
+      const name = localStorage.getItem("name");
+      if (!name) {
+        localStorage.clear();
+      }
+    };
+
+    checkLocalStorage();
+  }, []);
+
+  useEffect(() => {
     if (window.TelegramWebApp) {
       const tg = window.TelegramWebApp;
       tg.expand();
