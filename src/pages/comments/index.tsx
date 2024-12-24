@@ -16,7 +16,7 @@ export const Comments = () => {
   const { mutate: createComment, isLoading } = useCreateComment();
   const { mutate: createReplies } = useCreateReplies();
   const [messageText, setMessageText] = useState<string>("");
-  const [isModalVisible, setIsModalVisible] = useState(false); // Состояние для отображения модального окна
+  const [isModalVisible, setIsModalVisible] = useState(false);
   const navigate = useNavigate();
   const name = localStorage.getItem("name");
   const phone = localStorage.getItem("phone_number");

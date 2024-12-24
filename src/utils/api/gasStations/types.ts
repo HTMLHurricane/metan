@@ -9,5 +9,6 @@ export interface IGasStationsResponse {
     lat: number;
     long: number;
     is_open: boolean;
+    is_active: boolean;
   }
   

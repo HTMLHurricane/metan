@@ -1,3 +1,4 @@
+import { useGetGasStations } from "@/utils/api/gasStations/api";
 import { TOKEN } from "@/utils/config/token";
 import { Typography, Badge, Skeleton } from "antd";
 import { useState, useEffect, memo } from "react";
@@ -9,6 +10,7 @@ const { Text } = Typography;
 const Home = () => {
   const [gasStations, setGasStations] = useState<GasStation[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const { data: postmanData } = useGetGasStations();
   const navigate = useNavigate();
   const [userLocation, setUserLocation] = useState<{
     lat: number;
@@ -126,6 +128,14 @@ const Home = () => {
     // Список заправок обновлен, но логирование удалено
   }, [gasStations]);
 
+  const data = postmanData?.map((item1) => {
+    const match = gasStations?.find((item2) => item2.id === item1.id);
+    return {
+      ...item1,
+      users: match ? match.gas_station_users?.length : null,
+    };
+  });
+
   return (
     <div className="p-2 bg-[#181818] min-h-screen">
       <div className="fixed w-full top-0 z-50 left-0 text-center text-4xl font-bold text-slate-100 p-4 bg-[#181818] rounded-md shadow-md">
@@ -144,19 +154,28 @@ const Home = () => {
             ))}
           </div>
         ) : (
-          gasStations?.map((item) => (
+          data?.map((item) => (
             <div
               onClick={() => navigate(`/${item.id}`)}
               key={item.id}
               className={`${
-                item.is_open ? "border-[#28a745]" : "border-[#dc3545]"
+                item.is_active === false
+                  ? "border-[#FFD700] "
+                  : item.is_active && item.is_open
+                  ? "border-[#28a745]"
+                  : "border-[#dc3545]"
               } shadow-lg rounded-lg p-3 grid gap-4 border-solid border-[1px] cursor-pointer hover:bg-[#333333] transition duration-200`}
             >
               <div className="flex items-center gap-4">
                 <FaLocationDot
                   style={{
                     fontSize: "28px",
-                    color: item.is_open ? "#28a745" : "#dc3545",
+                    color:
+                      item.is_active === false
+                        ? "#FFD700 "
+                        : item.is_active && item.is_open
+                        ? "#28a745"
+                        : "#dc3545",
                   }}
                 />
                 <Text className="text-2xl font-semibold text-slate-100">
@@ -175,9 +194,7 @@ const Home = () => {
                 />
                 <div className="flex items-center text-slate-300 px-3 py-1 bg-slate-700 rounded-lg shadow-md text-[16px] space-x-1">
                   <span className="text-slate-100 font-medium">Очередь:</span>
-                  <span className="font-semibold">
-                    {item.gas_station_users?.length || 0}
-                  </span>
+                  <span className="font-semibold">{item.users || 0}</span>
                 </div>
               </div>
             </div>
