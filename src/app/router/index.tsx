@@ -1,7 +1,7 @@
 import { Route, Routes } from "react-router-dom";
 import ProtectedRoute from "./ProtectedRoute";
 import LoginPage from "@/pages/login";
-import NotFound from "@/pages/not-found";
+// import NotFound from "@/pages/not-found";
 import PageLoader from "@/components/PageLoader";
 import { AnimatePresence } from "framer-motion";
 import { Suspense } from "react";
@@ -29,7 +29,7 @@ const Router: React.FC = () => {
               ))}
             </Route>
           )}
-          <Route path="*" element={<NotFound />} />
+          {/* <Route path="*" element={<NotFound />} /> */}
         </Routes>
       </AnimatePresence>
     </Suspense>
