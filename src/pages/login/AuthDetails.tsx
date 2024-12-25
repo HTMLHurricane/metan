@@ -4,8 +4,7 @@ import { useState } from "react";
 export const AuthDetails = () => {
   const [name, setName] = useState<string | undefined>();
   const [number, setNumber] = useState<string | undefined>();
-  const isLoading = false;
-  const { mutate: authDetail } = useAuthDetail();
+  const { mutate: authDetail, isLoading } = useAuthDetail();
   const submit = () => {
     if (name && number) {
       authDetail({ name, number });

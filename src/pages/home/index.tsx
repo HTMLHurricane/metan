@@ -6,9 +6,27 @@ import { FaLocationDot } from "react-icons/fa6";
 import { useNavigate } from "react-router-dom";
 
 const { Text } = Typography;
+const getDistance = (
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number
+) => {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c * 1000;
+};
 
 const Home = () => {
-  const [gasStations, setGasStations] = useState<GasStation[]>([]);
+  const [gasStations, setGasStations] = useState<GasStationList[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const { data: postmanData } = useGetGasStations();
   const navigate = useNavigate();
@@ -17,26 +35,6 @@ const Home = () => {
     lon: number;
   } | null>(null);
   const [socket, setSocket] = useState<WebSocket | null>(null);
-
-  const getDistance = (
-    lat1: number,
-    lon1: number,
-    lat2: number,
-    lon2: number
-  ) => {
-    const R = 6371; // Радиус Земли в километрах
-    const dLat = ((lat2 - lat1) * Math.PI) / 180;
-    const dLon = ((lon2 - lon1) * Math.PI) / 180;
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos((lat1 * Math.PI) / 180) *
-        Math.cos((lat2 * Math.PI) / 180) *
-        Math.sin(dLon / 2) *
-        Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c * 1000; // Возвращаем расстояние в метрах
-  };
-
   const sendLocation = (location: { lat: number; lon: number }) => {
     if (socket?.readyState === WebSocket.OPEN) {
       const locationMessage = {
@@ -48,7 +46,15 @@ const Home = () => {
       socket.send(JSON.stringify(locationMessage));
     }
   };
-
+  const updateTotal = (id: string, newTotal: number) => {
+    setGasStations((prevData) => {
+      const index = prevData.findIndex((item) => item.id === id);
+      if (index === -1) return prevData;
+      const updatedData = [...prevData];
+      updatedData[index] = { ...updatedData[index], total: newTotal };
+      return updatedData;
+    });
+  };
   const sendLocationThrottled = (() => {
     let lastSentTime = 0;
     return (location: { lat: number; lon: number }) => {
@@ -63,84 +69,104 @@ const Home = () => {
   useEffect(() => {
     const token = TOKEN.getAccessToken() ?? "";
     const socketUrl = `wss://gas-station.aralhub.uz/ws/user/gas-stations/?token=${token}`;
-    const socket = new WebSocket(socketUrl);
+    let isConnected = false;
+    const attemptConnection = () => {
+      const socket = new WebSocket(socketUrl);
 
-    setSocket(socket);
+      socket.onopen = () => {
+        console.log("WebSocket соединение установлено");
+        isConnected = true;
 
-    socket.onopen = () => {
-      const message = {
-        action: "list",
-      };
-      socket.send(JSON.stringify(message));
+        const message = { action: "list" };
+        socket.send(JSON.stringify(message));
 
-      if (navigator.geolocation) {
-        let watchId: number;
+        if (navigator.geolocation) {
+          let watchId: number;
 
-        const handlePositionUpdate = (position: GeolocationPosition) => {
-          const newLocation = {
-            lat: position.coords.latitude,
-            lon: position.coords.longitude,
+          const handlePositionUpdate = (position: GeolocationPosition) => {
+            const newLocation = {
+              lat: position.coords.latitude,
+              lon: position.coords.longitude,
+            };
+
+            if (
+              !userLocation ||
+              getDistance(
+                userLocation.lat,
+                userLocation.lon,
+                newLocation.lat,
+                newLocation.lon
+              ) > 10
+            ) {
+              setUserLocation(newLocation);
+              sendLocationThrottled(newLocation);
+            }
           };
 
-          if (
-            !userLocation ||
-            getDistance(
-              userLocation.lat,
-              userLocation.lon,
-              newLocation.lat,
-              newLocation.lon
-            ) > 10
-          ) {
-            setUserLocation(newLocation);
-            sendLocationThrottled(newLocation);
-          }
-        };
+          const handleError = (error: GeolocationPositionError) => {
+            console.error("Ошибка получения геолокации:", error);
+          };
 
-        const handleError = (error: GeolocationPositionError) => {
-          console.error("Ошибка получения геолокации:", error);
-        };
+          watchId = navigator.geolocation.watchPosition(
+            handlePositionUpdate,
+            handleError,
+            {
+              enableHighAccuracy: true,
+              maximumAge: 60000,
+              timeout: 10000,
+            }
+          );
 
-        watchId = navigator.geolocation.watchPosition(
-          handlePositionUpdate,
-          handleError,
-          {
-            enableHighAccuracy: true,
-            maximumAge: 60000,
-            timeout: 10000,
-          }
-        );
+          return () => {
+            if (watchId) {
+              navigator.geolocation.clearWatch(watchId);
+            }
+          };
+        } else {
+          console.error("Геолокация не поддерживается этим браузером.");
+        }
+      };
 
-        return () => {
-          if (watchId) {
-            navigator.geolocation.clearWatch(watchId);
-          }
-        };
+      socket.onmessage = (event) => {
+        const response: GasStationsResponse = JSON.parse(event.data);
+        const { action, gas_stations } = response?.data || {};
+        if (action === "list" && Array.isArray(gas_stations)) {
+          setGasStations(gas_stations);
+          setLoading(false);
+        } else if (
+          ["update", "create", "delete"].includes(action) &&
+          gas_stations &&
+          !Array.isArray(gas_stations)
+        ) {
+          updateTotal(gas_stations.id, gas_stations.total);
+        }
+      };
+
+      socket.onerror = (error) => {
+        console.error("Ошибка WebSocket:", error);
+      };
+
+      socket.onclose = (event) => {
+        console.log("WebSocket соединение закрыто", event.reason);
+        isConnected = false;
+      };
+
+      return socket;
+    };
+    const intervalId = setInterval(() => {
+      if (!isConnected) {
+        const socket = attemptConnection();
+        if (socket.readyState === WebSocket.OPEN) {
+          clearInterval(intervalId);
+          setSocket(socket);
+        }
       } else {
-        console.error("Геолокация не поддерживается этим браузером.");
+        clearInterval(intervalId);
       }
-    };
-
-    socket.onmessage = (event) => {
-      const response: GasStationsResponse = JSON.parse(event.data);
-
-      if (response?.data?.gas_stations) {
-        setGasStations(response.data.gas_stations);
-        setLoading(false);
-      } else {
-        setLoading(false);
-      }
-    };
-
-    socket.onerror = (error) => {
-      console.error("Ошибка WebSocket:", error);
-    };
-
-    socket.onclose = (event) => {
-      console.log("WebSocket соединение закрыто", event.reason);
-    };
-
+    }, 10000);
     return () => {
-      socket.close();
+      clearInterval(intervalId);
+      socket?.close();
     };
   }, []);
 
@@ -247,10 +273,13 @@ interface GasStationUser {
 
 interface GasStation {
   id: string;
+  is_open: boolean;
+  total: number;
+}
+
+interface GasStationList extends GasStation {
   name: string;
   point: Point;
-  total: number;
-  is_open: boolean;
   is_open_by_admin: boolean;
   comment: string;
   comment_updated_at: string;
@@ -261,6 +290,6 @@ interface GasStationsResponse {
   message: string;
   data: {
     action: string;
-    gas_stations: GasStation[];
+    gas_stations: GasStationList[] | GasStation | null;
   };
 }
