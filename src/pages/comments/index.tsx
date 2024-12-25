@@ -62,9 +62,9 @@ export const Comments = () => {
   };
 
   return (
-    <div className="space-y-4 p-2 bg-[#181818] min-h-screen">
+    <div className="space-y-4 p-2 bg-[#2e2e3e] min-h-screen">
       {/* Header */}
-      <div className="bg-[#242424] fixed top-0 left-0 w-full p-2 flex justify-between items-center z-50">
+      <div className="bg-[#1e1e2e] fixed top-0 left-0 w-full p-2 flex justify-between items-center z-50">
         <Button
           onClick={() => navigate(-1)}
           type="link"
@@ -80,9 +80,6 @@ export const Comments = () => {
       {/* Модальное окно */}
       <Modal
         open={isModalVisible}
-        style={{
-          backgroundColor: "#242424",
-        }}
         onOk={handleOk}
         onCancel={handleCancel}
         footer={[
@@ -119,11 +116,11 @@ export const Comments = () => {
         </div>
       </Modal>
 
-      <div className="grid gap-2 py-10 pt-16">
+      <div className="grid gap-2 py-10 pt-10">
         {data?.map((item) => (
           <div
             key={item.text + item.created_at}
-            className="border-solid border-slate-700 rounded-sm px-2 py-1 flex flex-col relative shadow-sm bg-[#242424]"
+            className="border-solid border-slate-700 rounded-sm px-2 py-1 flex flex-col relative shadow-sm bg-[#1e1e2e]"
           >
             <div className="font-semibold text-xl text-slate-100">
               {item.name}
@@ -136,9 +133,9 @@ export const Comments = () => {
         ))}
       </div>
 
-      <div className="fixed bottom-0 left-0 w-full flex items-center z-50 px-2 py-2 bg-[#242424]">
+      <div className="fixed bottom-0 left-0 w-full flex items-center z-50 px-2 py-2 bg-[#1e1e2e]">
         <input
-          className="w-full p-3 text-xl bg-[#333333] text-slate-200 rounded-sm focus:outline-none focus:ring-0"
+          className="w-full p-3 text-xl bg-[#2e2e3e] text-slate-200 rounded-sm focus:outline-none focus:ring-0"
           placeholder="Введите комментарий"
           value={messageText || ""}
           onChange={(e) => setMessageText(e.target.value)}

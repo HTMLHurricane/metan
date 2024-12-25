@@ -1,59 +1,40 @@
 import { useVerifyMutation } from "@/utils/api/auth/api";
-import { IVerifyPost } from "@/utils/api/auth/types";
-import { Form } from "antd";
-import MaskedInput from "antd-mask-input";
-import { useEffect } from "react";
+import { useState } from "react";
 
 export const Verify = () => {
-  const [form] = Form.useForm();
-  const { mutate: verify, isError, error } = useVerifyMutation();
+  const phone_number = localStorage.getItem("phone_number");
+  const [code, setCode] = useState<string | undefined>("");
+  const { mutate: verify, isLoading } = useVerifyMutation();
 
-  useEffect(() => {
-    const phoneNumber = localStorage.getItem("phone_number");
-    if (phoneNumber) {
-      form.setFieldsValue({ phone_number: phoneNumber });
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\D/g, "");
+    if (value.length > 4) return;
+    setCode(value);
+    if (value.length === 4 && phone_number) {
+      submit(value);
     }
-  }, [form]);
+  };
 
-  const onFinish = (data: IVerifyPost) => verify(data);
-
-  const handleCodeChange = (e: any) => {
-    const code = e.unmaskedValue;
-    if (code.length === 4) {
-      form.submit();
+  const submit = (inputCode: string) => {
+    if (inputCode && phone_number) {
+      verify({ code: inputCode, phone_number });
     }
   };
 
   return (
-    <Form
-      form={form}
-      className="min-h-screen flex flex-col justify-center items-center bg-[#333333]"
-      initialValues={{
-        remember: true,
-      }}
-      onFinish={onFinish}
-    >
-      {" "}
-      <span className="text-slate-100 text-xl my-5">
-        Введите ваш код из смс ниже
-      </span>
-      <Form.Item name="phone_number" className="hidden" />
-      <Form.Item
-        name="code"
-        rules={[
-          {
-            required: true,
-            message: "Пожалуйста, введите код из смс!",
-          },
-        ]}
-      >
-        <MaskedInput
-          mask={"0 0 0 0"}
-          className="text-slate-200 text-3xl w-[120px] bg-[#333333] border-slate-100 hover:border-slate-100 hover:!bg-[#333333] active:!bg-[#333333]"
-          onChange={handleCodeChange}
-        />
-      </Form.Item>
-      {isError && <span className="error">{error?.message}</span>}
-    </Form>
+    <div className="bg-[#1e1e2e] text-gray-200 w-full min-h-screen flex flex-col justify-center items-center p-4">
+      <div className="text-2xl font-semibold mb-6 text-gray-100">
+        Введите ваш код из СМС
+      </div>
+      <input
+        type="text"
+        placeholder="XXXX"
+        value={code || ""}
+        onChange={handleChange}
+        disabled={isLoading}
+        className="w-[100px] text-center text-2xl max-w-md px-4 py-2 mb-4 rounded-lg bg-[#2e2e3e] text-gray-200 border border-gray-600 focus:outline-none"
+      />
+      {isLoading && <div className="text-gray-500 text-lg">Проверка...</div>}
+    </div>
   );
 };

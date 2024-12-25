@@ -18,7 +18,6 @@ const Home = () => {
   } | null>(null);
   const [socket, setSocket] = useState<WebSocket | null>(null);
 
-  // Функция для вычисления расстояния между двумя точками (в метрах)
   const getDistance = (
     lat1: number,
     lon1: number,
@@ -38,7 +37,6 @@ const Home = () => {
     return R * c * 1000; // Возвращаем расстояние в метрах
   };
 
-  // Функция для отправки геолокации на сервер через открытое соединение
   const sendLocation = (location: { lat: number; lon: number }) => {
     if (socket?.readyState === WebSocket.OPEN) {
       const locationMessage = {
@@ -51,13 +49,11 @@ const Home = () => {
     }
   };
 
-  // Оптимизированная функция для отправки с задержкой
   const sendLocationThrottled = (() => {
     let lastSentTime = 0;
     return (location: { lat: number; lon: number }) => {
       const now = Date.now();
       if (now - lastSentTime > 5000) {
-        // Ограничение на отправку каждые 5 секунд
         sendLocation(location);
         lastSentTime = now;
       }
@@ -109,7 +105,7 @@ const Home = () => {
           handleError,
           {
             enableHighAccuracy: true,
-            maximumAge: 60000, // Используем кэшированные данные, если они не старше 1 минуты
+            maximumAge: 60000,
             timeout: 10000,
           }
         );
@@ -157,8 +153,8 @@ const Home = () => {
   });
 
   return (
-    <div className="p-2 bg-[#181818] min-h-screen">
-      <div className="fixed w-full top-0 z-50 left-0 text-center text-4xl font-bold text-slate-100 p-4 bg-[#181818] rounded-md shadow-md">
+    <div className="p-2 bg-[#1e1e2e] min-h-screen">
+      <div className="fixed w-full top-0 z-50 left-0 text-center text-4xl font-bold text-slate-100 p-4 bg-[#1e1e2e] rounded-md shadow-md">
         Metan Nukus
       </div>
       <div className="pt-20 pb-5 grid gap-5">

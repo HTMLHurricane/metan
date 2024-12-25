@@ -1,57 +1,59 @@
-import { Form } from "antd";
-import { MaskedInput } from "antd-mask-input";
 import { useLoginMutation } from "@/utils/api/auth/api";
-import { ILoginCredentials } from "@/utils/api/auth/types";
+import { useState } from "react";
 
 const LoginPage = () => {
-  const [form] = Form.useForm();
-  const { mutate: login, isError, error } = useLoginMutation();
-  const onFinish = (data: ILoginCredentials) => login(data);
-  const maskLength = 9;
+  const [phone, setPhone] = useState<string | undefined>("");
+  const [error, setError] = useState<string | null>(null);
+  const { mutate: login, isLoading } = useLoginMutation();
 
-  const handlePhoneChange = (e: any) => {
-    const value = e.unmaskedValue;
-    form.setFieldValue("phone_number", value);
+  const validatePhone = (value: string) => {
+    // Удаляем пробелы, проверяем, что только цифры и длина равна 9
+    const cleanedValue = value.replace(/\D/g, "");
+    if (cleanedValue.length > 9) return cleanedValue.slice(0, 9); // Ограничиваем до 9 цифр
+    return cleanedValue;
+  };
 
-    localStorage.setItem("phone_number", value);
-
-    if (value.length === maskLength) {
-      form.submit();
+  const submit = () => {
+    if (!phone || phone.length !== 9) {
+      setError("Номер телефона должен содержать ровно 9 цифр.");
+      return;
     }
+    setError(null);
+    login({ phone_number: phone });
+    localStorage.setItem("phone_number", phone);
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    const validatedPhone = validatePhone(value);
+    setPhone(validatedPhone);
   };
 
   return (
-    <Form
-      form={form}
-      className="min-h-screen flex flex-col justify-center items-center bg-[#333333]"
-      initialValues={{
-        remember: true,
-      }}
-      onFinish={onFinish}
-    >
-      <span className="text-slate-100 text-xl my-5 text-center">
-        Введите ваш номер телефона ниже
-      </span>
-      <div className="flex justify-center">
-        <div className="text-3xl mr-2 pt-1 text-slate-200">+998</div>
-        <Form.Item
-          name="phone_number"
-          rules={[
-            {
-              required: true,
-              message: "Пожалуйста, введите ваш номер!",
-            },
-          ]}
-        >
-          <MaskedInput
-            mask={"0 0 0 0 0 0 0 0 0"}
-            className="text-slate-200 block text-3xl w-[250px] bg-[#333333] border-slate-100 hover:border-slate-100 hover:!bg-[#333333] active:!bg-[#333333]"
-            onChange={handlePhoneChange}
-          />
-        </Form.Item>
+    <div className="bg-[#1e1e2e] text-gray-200 w-full min-h-screen flex flex-col justify-center items-center p-4">
+      <div className="text-2xl font-semibold mb-6 text-gray-100">
+        Введите ваш номер телефона
       </div>
-      {isError && <span className="error">{error?.message}</span>}
-    </Form>
+      <input
+        type="text"
+        placeholder="880808080"
+        value={phone || ""}
+        onChange={handleChange}
+        className="w-[200px] text-center text-2xl max-w-md px-4 py-2 mb-4 rounded-lg bg-[#2e2e3e] text-gray-200 border border-gray-600 focus:outline-none"
+      />
+      {error && <div className="text-red-500 text-sm mb-4">{error}</div>}
+      <button
+        onClick={submit}
+        disabled={isLoading}
+        className={`w-[200px] px-4 py-2 text-lg font-medium rounded-lg transition-all ${
+          isLoading
+            ? "bg-gray-500 cursor-not-allowed"
+            : "bg-blue-600 focus:ring-blue-400"
+        }`}
+      >
+        {isLoading ? "Отправка..." : "Отправить"}
+      </button>
+    </div>
   );
 };
 
