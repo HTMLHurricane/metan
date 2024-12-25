@@ -27,7 +27,6 @@ const getDistance = (
 
 const Home = () => {
   const [gasStations, setGasStations] = useState<GasStationList[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
   const { data: postmanData } = useGetGasStations();
   const navigate = useNavigate();
   const [userLocation, setUserLocation] = useState<{
@@ -132,7 +131,6 @@ const Home = () => {
         const { action, gas_stations } = response?.data || {};
         if (action === "list" && Array.isArray(gas_stations)) {
           setGasStations(gas_stations);
-          setLoading(false);
         } else if (
           ["update", "create", "delete"].includes(action) &&
           gas_stations &&
@@ -184,7 +182,7 @@ const Home = () => {
         Metan Nukus
       </div>
       <div className="pt-20 pb-5 grid gap-5">
-        {loading ? (
+        {Boolean(!data) ? (
           <div>
             {Array.from({ length: 5 }).map((_, index) => (
               <Skeleton

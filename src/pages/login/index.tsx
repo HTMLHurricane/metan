@@ -36,7 +36,7 @@ const LoginPage = () => {
       </div>
       <input
         type="text"
-        placeholder="880808080"
+        placeholder="88 880 80 80"
         value={phone || ""}
         onChange={handleChange}
         className="w-[200px] text-center text-2xl max-w-md px-4 py-2 mb-4 rounded-lg bg-[#2e2e3e] text-gray-200 border border-gray-600 focus:outline-none"
