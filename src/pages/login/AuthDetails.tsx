@@ -14,7 +14,7 @@ export const AuthDetails = () => {
   return (
     <Form
       form={form}
-      className="min-h-screen flex flex-col justify-center items-center bg-[#181818]"
+      className="min-h-screen flex flex-col justify-center items-center bg-[#333333]"
       initialValues={{
         remember: true,
       }}
@@ -31,7 +31,7 @@ export const AuthDetails = () => {
           },
         ]}
       >
-        <Input className="bg-[#333333] text-2xl border-[#333333] hover:border-[#333333] hover:!bg-[#333333] active:!bg-[#333333] text-slate-100" />
+        <Input className="text-slate-100 bg-[#333333] text-2xl border-slate-100 hover:border-slate-100 hover:!bg-[#333333] active:!bg-[#333333] " />
       </Form.Item>
       <Form.Item
         name="number"
@@ -49,15 +49,14 @@ export const AuthDetails = () => {
         ]}
       >
         <Input
-          placeholder="xx xxxxxx"
-          className="bg-[#333333] text-2xl border-[#333333] hover:border-[#333333] hover:!bg-[#333333] active:!bg-[#333333] text-slate-100"
+          placeholder="95000AAA"
+          className="text-slate-100 bg-[#333333] text-2xl border-slate-100 hover:border-slate-100 hover:!bg-[#333333] active:!bg-[#333333] "
         />
       </Form.Item>
       <Form.Item>
         <Button
-          type="link"
           htmlType="submit"
-          className="text-slate-100 text-2xl hover:!text-slate-100 bg-[#333333] px-10 py-5"
+          className="text-slate-100 text-2xl bg-[#333333] hover:!text-slate-100 hover:!bg-[#333333] hover:!border-slate-100 px-10 py-5 focus:outline-none focus:ring-0 focus:shadow-none active:!bg-[#333333] active:text-slate-100"
           loading={isLoading}
         >
           отправить

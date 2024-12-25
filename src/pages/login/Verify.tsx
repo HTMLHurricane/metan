@@ -27,16 +27,19 @@ export const Verify = () => {
   return (
     <Form
       form={form}
-      className="min-h-screen flex flex-col justify-center items-center pl-28 bg-[#181818]"
+      className="min-h-screen flex flex-col justify-center items-center bg-[#333333]"
       initialValues={{
         remember: true,
       }}
       onFinish={onFinish}
     >
+      {" "}
+      <span className="text-slate-100 text-xl my-5">
+        Введите ваш код из смс ниже
+      </span>
       <Form.Item name="phone_number" className="hidden" />
       <Form.Item
         name="code"
-        label={<span className="text-slate-100 text-xl">Код из смс</span>}
         rules={[
           {
             required: true,
@@ -46,7 +49,7 @@ export const Verify = () => {
       >
         <MaskedInput
           mask={"0 0 0 0"}
-          className="text-slate-200 text-3xl w-[120px] bg-[#333333] border-[#333333] hover:border-[#333333] hover:!bg-[#333333] active:!bg-[#333333]"
+          className="text-slate-200 text-3xl w-[120px] bg-[#333333] border-slate-100 hover:border-slate-100 hover:!bg-[#333333] active:!bg-[#333333]"
           onChange={handleCodeChange}
         />
       </Form.Item>

@@ -1,7 +1,7 @@
-import { Route, Routes, Navigate } from "react-router-dom";
+import { Route, Routes } from "react-router-dom";
 import ProtectedRoute from "./ProtectedRoute";
 import LoginPage from "@/pages/login";
-// import NotFound from "@/pages/not-found";
+import NotFound from "@/pages/not-found";
 import PageLoader from "@/components/PageLoader";
 import { AnimatePresence } from "framer-motion";
 import { Suspense } from "react";
@@ -18,7 +18,7 @@ const Router: React.FC = () => {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/auth_verify" element={<Verify />} />
-          {isLoggedIn ? (
+          {isLoggedIn && (
             <Route path="/">
               {privateRoutes.map((route) => (
                 <Route
@@ -28,10 +28,8 @@ const Router: React.FC = () => {
                 />
               ))}
             </Route>
-          ) : (
-            <Route path="*" element={<Navigate to="/login" replace />} />
           )}
-          {/* <Route path="*" element={<NotFound />} /> */}
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </AnimatePresence>
     </Suspense>
